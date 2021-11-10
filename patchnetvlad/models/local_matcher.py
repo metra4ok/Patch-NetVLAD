@@ -162,7 +162,7 @@ def local_matcher(predictions, eval_set, input_query_local_features_prefix,
                 dbfilename = input_index_local_features_prefix + '_' + 'psize{}_'.format(patch_size) + image_name_index + '.npy'
                 dbfeat.append(torch.tensor(np.load(dbfilename), device=device))
 
-            diffs[k, :], _, _ = matcher.match(qfeat, dbfeat)
+            diffs[k, :], _, _, _ = matcher.match(qfeat, dbfeat)
 
         diffs = normalise_func(diffs, len(patch_sizes), patch_weights)
         cand_sorted = np.argsort(diffs)

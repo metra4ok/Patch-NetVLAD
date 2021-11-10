@@ -138,7 +138,7 @@ def match_two(model, device, config, im_one, im_two, plot_save_path):
     matcher = PatchMatcher(config['feature_match']['matcher'], patch_sizes, strides, all_keypoints,
                            all_indices)
 
-    scores, inlier_keypoints_one, inlier_keypoints_two = matcher.match(local_feats_one, local_feats_two)
+    scores, inlier_keypoints_one, inlier_keypoints_two, h_matrices = matcher.match(local_feats_one, local_feats_two)
     score = -apply_patch_weights(scores, len(patch_sizes), patch_weights)
 
     print(f"Similarity score between the two images is: {score:.5f}. Larger scores indicate better matches.")
@@ -153,6 +153,7 @@ def match_two(model, device, config, im_one, im_two, plot_save_path):
         # cv2 resize slightly different from torch, but for visualisation only not a big problem
 
         plot_two(cv_im_one, cv_im_two, inlier_keypoints_one, inlier_keypoints_two, plot_save_path)
+        np.save(join(plot_save_path, 'h_matrices.npy'), h_matrices)
 
 
 def main():

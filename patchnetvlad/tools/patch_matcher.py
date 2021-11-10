@@ -63,6 +63,7 @@ class PatchMatcher(object):
         scores = []
         all_inlier_index_keypoints = []
         all_inlier_query_keypoints = []
+        h_matrices = []
         for qfeat, dbfeat, keypoints, stride in zip(qfeats, dbfeats, self.all_keypoints, self.strides):
             fw_inds, bw_inds = torch_nn(qfeat, dbfeat)
 
@@ -78,24 +79,28 @@ class PatchMatcher(object):
                 index_keypoints = np.transpose(index_keypoints)
                 query_keypoints = np.transpose(query_keypoints)
 
-                _, mask = cv2.findHomography(index_keypoints, query_keypoints, cv2.FM_RANSAC,
+                h_matrix, mask = cv2.findHomography(index_keypoints, query_keypoints, cv2.FM_RANSAC,
                                              ransacReprojThreshold=16*stride*1.5)
                 # RANSAC reproj threshold is set to the (stride*1.5) in image space for vgg-16, given a particular patch stride
-                # in this work, we ignore the H matrix output - but users of this code are welcome to utilise this for
-                # pose estimation (something we may also investigate in future work)
 
                 inlier_index_keypoints = index_keypoints[mask.ravel() == 1]
                 all_inlier_query_keypoints.append(query_keypoints[mask.ravel() == 1])
                 inlier_count = inlier_index_keypoints.shape[0]
                 scores.append(-inlier_count / qfeat.shape[0])
                 all_inlier_index_keypoints.append(inlier_index_keypoints)
+                h_matrices.append(h_matrix)
                 # we flip to negative such that best match is the smallest number, to be consistent with vanilla NetVlad
                 # we normalise by patch count to remove biases in the scoring between different patch sizes (so that all
                 # patch sizes are weighted equally and that the only weighting is from the user-defined patch weights)
             else:
                 scores.append(0.)
+                all_inlier_query_keypoints.append(np.array([]))  # it was not in original repository
+                all_inlier_index_keypoints.append(np.array([]))  # but I think it is important
+                h_matrices.append(np.array([]))
+        
+        h_matrices = np.array(h_matrices)
 
-        return scores, all_inlier_query_keypoints, all_inlier_index_keypoints
+        return scores, all_inlier_query_keypoints, all_inlier_index_keypoints, h_matrices
 
     def compare_two_spatial(self, qfeats, dbfeats):
         scores = []
@@ -136,4 +141,4 @@ class PatchMatcher(object):
             else:
                 scores.append(0.)
 
-        return scores, None, None
+        return scores, None, None, None
