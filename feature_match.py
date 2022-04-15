@@ -44,6 +44,7 @@ import argparse
 import configparser
 from os.path import join
 from os.path import exists
+from time import time
 import torch
 import numpy as np
 import faiss
@@ -138,16 +139,25 @@ def feature_match(eval_set, device, opt, config):
             predictions = np.array(predictions_new)
         else:
             # noinspection PyArgumentList
+            global_match_time = time()
             _, predictions = faiss_index.search(qFeat, min(len(qFeat), max(n_values)))
+            global_match_time = time() - global_match_time
 
+    local_match_time = time()
     reranked_predictions = local_matcher(predictions, eval_set, input_query_local_features_prefix,
                                          input_index_local_features_prefix, config, device)
+    local_match_time = time() - local_match_time
 
     # save predictions to files - Kapture Output
     write_kapture_output(opt, eval_set, predictions, 'NetVLAD_predictions.txt')
     write_kapture_output(opt, eval_set, reranked_predictions, 'PatchNetVLAD_predictions.txt')
 
-    print('Finished matching features.')
+    print('Finished matching features.\n')
+    print(f'Query len: {qFeat.shape[0]}')
+    print(f'Database len: {dbFeat.shape[0]}')
+    print('Total time:')
+    print(f'\tGlobal matching: {global_match_time:.3f} sec')
+    print(f'\tLocal matching: {local_match_time:.3f} sec\n')
 
     # for each query get those within threshold distance
     if opt.ground_truth_path is not None:
