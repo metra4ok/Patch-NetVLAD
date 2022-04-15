@@ -34,6 +34,8 @@ from PIL import Image
 from sklearn.neighbors import NearestNeighbors
 
 from patchnetvlad.tools import PATCHNETVLAD_ROOT_DIR
+from robotcar.camera_model import CameraModel
+from robotcar.image import load_image
 
 
 def input_transform(resize=(480, 640)):
@@ -75,6 +77,9 @@ class PlaceDataset(data.Dataset):
             if os.path.isfile(os.path.join(PATCHNETVLAD_ROOT_DIR, self.images[0])):
                 self.images = [os.path.join(PATCHNETVLAD_ROOT_DIR, image) for image in self.images]
 
+        self.camera_model = CameraModel('/home/docker_seqpntr/SeqPNTR/dependencies/robotcar_dataset_sdk/models',
+                                        '/'.join(self.images[0].split('/')[:-1]))
+
         self.positives = None
         self.distances = None
 
@@ -82,7 +87,8 @@ class PlaceDataset(data.Dataset):
         self.mytransform = input_transform(self.resize)
 
     def __getitem__(self, index):
-        img = Image.open(self.images[index])
+        # img = Image.open(self.images[index])
+        img = Image.fromarray(load_image(self.images[index], model=self.camera_model))
         img = self.mytransform(img)
 
         return img, index
